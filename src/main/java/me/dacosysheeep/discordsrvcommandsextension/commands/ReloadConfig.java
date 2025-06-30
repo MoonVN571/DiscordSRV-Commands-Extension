@@ -17,9 +17,7 @@ public class ReloadConfig implements CommandExecutor {
         if (sender.hasPermission("DiscordsrvCommandsExtension.reload")) {
             plugin.reloadConfig();
             FileConfiguration config = plugin.getConfig();
-            plugin.serverManagerRoles = config.getStringList("server-manager-roles");
-            plugin.whitelistManagerRoles = config.getStringList("whitelist-manager-roles");
-            plugin.whitelistViewerRoles = config.getStringList("whitelist-viewer-roles");
+            plugin.authorizedUsers = config.getStringList("authorized-user-ids");
             sender.sendMessage(ChatColor.GREEN + "The configuration has been reloaded.");
         } else {
             sender.sendMessage(ChatColor.RED + "You don't have permission to use that command.");

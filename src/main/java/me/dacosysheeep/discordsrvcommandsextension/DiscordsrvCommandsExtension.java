@@ -26,9 +26,8 @@ import static java.lang.String.valueOf;
 @SuppressWarnings({"deprecation", "unused"})
 public final class DiscordsrvCommandsExtension extends JavaPlugin implements Listener, SlashCommandProvider {
     FileConfiguration config = this.getConfig();
-    public List<String> serverManagerRoles = config.getStringList("server-manager-roles");
-    public List<String> whitelistManagerRoles = config.getStringList("whitelist-manager-roles");
-    public List<String> whitelistViewerRoles = config.getStringList("whitelist-viewer-roles");
+    public List<String> authorizedUsers = config.getStringList("authorized-user-ids");
+
     @Override
     public void onEnable() {
         // Plugin startup logic
@@ -73,11 +72,10 @@ public final class DiscordsrvCommandsExtension extends JavaPlugin implements Lis
         String username = Objects.requireNonNull(e.getOption("username")).getAsString();
         getLogger().info(String.format("Whitelisting %1$s", username));
 
-        List<Role> roles = e.getMember().getRoles();
-        boolean serverManager = whitelistManagerRoles.isEmpty() && roles.stream().anyMatch(role -> serverManagerRoles.contains(valueOf(role.getIdLong())));
-        boolean whitelistManager = roles.stream().anyMatch(role -> whitelistManagerRoles.contains(valueOf(role.getIdLong())));
+        String userId = e.getMember().getId();
+        boolean authorized = authorizedUsers.contains(userId);
 
-        if (serverManager || whitelistManager) {
+        if (authorized) {
             if (getServer().getOfflinePlayer(username).isWhitelisted()) {
                 e.getHook().sendMessage("This user is already whitelisted on the server").queue();
             } else {
@@ -109,9 +107,11 @@ public final class DiscordsrvCommandsExtension extends JavaPlugin implements Lis
     @SlashCommand(path="whitelist/remove", deferReply = true)
     public void whitelistRemove(SlashCommandEvent e) {
         List<Role> roles = e.getMember().getRoles();
-        boolean serverManager = whitelistManagerRoles.isEmpty() && roles.stream().anyMatch(role -> serverManagerRoles.contains(valueOf(role.getIdLong())));
-        boolean whitelistManager = roles.stream().anyMatch(role -> whitelistManagerRoles.contains(valueOf(role.getIdLong())));
-        if (serverManager || whitelistManager) {
+
+        long userId = e.getMember().getIdLong();
+        boolean authorized = authorizedUsers.contains(userId);
+
+        if (authorized) {
             String username = Objects.requireNonNull(e.getOption("username")).getAsString();
             Bukkit.getScheduler().runTask(this, () -> getServer().getOfflinePlayer(username).setWhitelisted(false));
 
@@ -122,19 +122,14 @@ public final class DiscordsrvCommandsExtension extends JavaPlugin implements Lis
     }
     @SlashCommand(path="whitelist/list", deferReply = true)
     public void whitelistList(SlashCommandEvent e) {
-        List<Role> roles = e.getMember().getRoles();
-        boolean serverManager = whitelistManagerRoles.isEmpty() && roles.stream().anyMatch(role -> serverManagerRoles.contains(valueOf(role.getIdLong())));
-        boolean whitelistManager = roles.stream().anyMatch(role -> whitelistManagerRoles.contains(valueOf(role.getIdLong()))) || whitelistManagerRoles.contains("everyone");
-        boolean whitelistViewer = roles.stream().anyMatch(role -> whitelistViewerRoles.contains(valueOf(role.getIdLong()))) || whitelistViewerRoles.contains("everyone");
-        if (serverManager || whitelistManager || whitelistViewer) {
+        String userId = e.getMember().getId();
+        boolean authorized = authorizedUsers.contains(userId);
+
+        if (authorized) {
             // Get the whitelist
             Set<OfflinePlayer> whitelist = Bukkit.getServer().getWhitelistedPlayers();
             if(whitelist.isEmpty()) {
-                if (serverManager || whitelistManager) {
-                    e.getHook().sendMessage("The server whitelist is empty. To add users, try using the ```/whitelist add <username>``` command.").queue();
-                } else {
-                    e.getHook().sendMessage("The server whitelist is empty. Wait for a whitelist manager to add someone.").queue();
-                }
+                e.getHook().sendMessage("The server whitelist is empty. To add users, try using the ```/whitelist add <username>``` command.").queue();
             } else {
 
                 // Create a StringBuilder to build the list of usernames
@@ -160,9 +155,10 @@ public final class DiscordsrvCommandsExtension extends JavaPlugin implements Lis
     @SlashCommand(path="restart", deferReply = true)
     public void serverRestart(SlashCommandEvent e) {
         //Restart the server
-        List<Role> roles = e.getMember().getRoles();
-        boolean serverManager = roles.stream().anyMatch(role -> serverManagerRoles.contains(valueOf(role.getIdLong())));
-        if (serverManager) {
+        String userId = e.getMember().getId();
+        boolean authorized = authorizedUsers.contains(userId);
+
+        if (authorized) {
             e.getHook().sendMessage("Restarting the server.").queue();
             Bukkit.getScheduler().runTask(this, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "restart"));
         } else {
@@ -171,9 +167,10 @@ public final class DiscordsrvCommandsExtension extends JavaPlugin implements Lis
     }
     @SlashCommand(path="stop", deferReply = true)
     public void serverStop(SlashCommandEvent e) {
-        List<Role> roles = e.getMember().getRoles();
-        boolean serverManager = roles.stream().anyMatch(role -> serverManagerRoles.contains(valueOf(role.getIdLong())));
-        if (serverManager) {
+        String userId = e.getMember().getId();
+        boolean authorized = authorizedUsers.contains(userId);
+
+        if (authorized) {
             e.getHook().sendMessage("Stopping the server.").queue();
             //getServer().dispatchCommand(getServer().getConsoleSender(), "stop");
             Bukkit.getScheduler().runTask(this, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "stop"));
